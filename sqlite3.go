@@ -73,7 +73,9 @@ func (d *SqliteJsDriver) Open(dsn string) (conn driver.Conn, err error) {
 	dbMap := js.Global().Get(globalSQLDBs)
 	jsDb := dbMap.Call("get", dsn)
 	if !jsDb.Truthy() {
-		jsDb = js.Global().Get(globalSQLJS).Get("Database").New(dsn)
+		dbBlob := js.Global().Get(dsn)
+		jsDb = js.Global().Get(globalSQLJS).Get("Database").New(dbBlob)
+		//jsDb = js.Global().Get(globalSQLJS).Get("Database").New(dsn)
 		dbMap.Call("set", dsn, jsDb)
 	}
 	fmt.Println("Open ->", dsn, "err=", err)
