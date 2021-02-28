@@ -25,6 +25,7 @@ import (
 	"io"
 	"log"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall/js"
 )
@@ -71,11 +72,21 @@ type SqliteJsRows struct {
 func (d *SqliteJsDriver) Open(dsn string) (conn driver.Conn, err error) {
 	defer protect("Open", func(e error) { err = e })
 	dbMap := js.Global().Get(globalSQLDBs)
+
+	var jsvar bool
+	if strings.Contains(dsn, "jsvar:") {
+		jsvar = true
+		dsn = strings.ReplaceAll(dsn, "jsvar:", "")
+	}
+
 	jsDb := dbMap.Call("get", dsn)
 	if !jsDb.Truthy() {
-		dbBlob := js.Global().Get(dsn)
-		jsDb = js.Global().Get(globalSQLJS).Get("Database").New(dbBlob)
-		//jsDb = js.Global().Get(globalSQLJS).Get("Database").New(dsn)
+		if jsvar {
+			dbBlob := js.Global().Get(dsn)
+			jsDb = js.Global().Get(globalSQLJS).Get("Database").New(dbBlob)
+		} else {
+			jsDb = js.Global().Get(globalSQLJS).Get("Database").New(dsn)
+		}
 		dbMap.Call("set", dsn, jsDb)
 	}
 	fmt.Println("Open ->", dsn, "err=", err)
